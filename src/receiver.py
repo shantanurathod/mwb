@@ -1,26 +1,26 @@
 import socket
+import pyautogui
 import json
-from pynput import mouse
 
-RECEIVER_IP = '192.168.X.X'  # Change this
-PORT = 9999
+HOST = '0.0.0.0'  # Listen on all interfaces
+PORT = 9999       # Same as sender
 
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-s.connect((RECEIVER_IP, PORT))
-
-prev_x, prev_y = None, None
-
-def on_move(x, y):
-    global prev_x, prev_y
-    if prev_x is not None and prev_y is not None:
-        dx = x - prev_x
-        dy = y - prev_y
-        payload = json.dumps({'dx': dx, 'dy': dy}).encode()
-        try:
-            s.sendall(payload)
-        except Exception as e:
-            print(f"Send error: {e}")
-    prev_x, prev_y = x, y
-
-with mouse.Listener(on_move=on_move) as listener:
-    listener.join()
+with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+    s.bind((HOST, PORT))
+    s.listen()
+    print(f"Listening on port {PORT}...")
+    conn, addr = s.accept()
+    print(f"Connected by {addr}")
+    with conn:
+        while True:
+            data = conn.recv(1024)
+            if not data:
+                break
+            try:
+                movement = json.loads(data.decode())
+                dx = movement['dx']
+                dy = movement['dy']
+                current_x, current_y = pyautogui.position()
+                pyautogui.moveTo(current_x + dx, current_y + dy)
+            except Exception as e:
+                print(f"Error: {e}")
