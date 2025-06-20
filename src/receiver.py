@@ -2,8 +2,8 @@ import socket
 import pyautogui
 import json
 
-HOST = '0.0.0.0'  # Listen on all interfaces
-PORT = 9999       # Same as sender
+HOST = '0.0.0.0'
+PORT = 9999
 
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     s.bind((HOST, PORT))
@@ -11,16 +11,13 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     print(f"Listening on port {PORT}...")
     conn, addr = s.accept()
     print(f"Connected by {addr}")
-    with conn:
-        while True:
-            data = conn.recv(1024)
-            if not data:
-                break
+    with conn, conn.makefile() as f:  # makefile() turns socket into line reader
+        for line in f:
             try:
-                movement = json.loads(data.decode())
+                movement = json.loads(line.strip())
                 dx = movement['dx']
                 dy = movement['dy']
-                current_x, current_y = pyautogui.position()
-                pyautogui.moveTo(current_x + dx, current_y + dy)
+                x, y = pyautogui.position()
+                pyautogui.moveTo(x + dx, y + dy)
             except Exception as e:
                 print(f"Error: {e}")
